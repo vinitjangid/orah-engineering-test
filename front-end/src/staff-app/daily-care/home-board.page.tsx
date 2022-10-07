@@ -9,10 +9,14 @@ import { Person } from "shared/models/person"
 import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
+import { faHandLizard } from "@fortawesome/free-solid-svg-icons"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
+  const [sortType, setSortType] = useState("")
+  const [reverse, setReverse] = useState(1)
+  const [filteredArray, setFilteredArray] = useState()
 
   useEffect(() => {
     void getStudents()
@@ -22,10 +26,31 @@ export const HomeBoardPage: React.FC = () => {
     if (action === "roll") {
       setIsRollMode(true)
     }
+    else if (action === 'sort') {
+      setSortType("sort")
+      const soretdByFirstName = data?.students?.sort((a, b) => a.first_name > b.first_name ? 1 : -1)
+      setFilteredArray(soretdByFirstName)
+    }
+    else if (action === 'reverse') {
+      if (filteredArray?.length > 0) {
+        setReverse(-reverse)
+        filteredArray?.reverse()
+      } else {
+        setFilteredArray(data?.students)
+      }
+    }
+    else if (action === 'last') {
+      setSortType("last")
+      const sortedByLastName = data?.students?.sort((a, b) => a.last_name > b.last_name ? 1 : -1)
+      setFilteredArray(sortedByLastName )
+    }
   }
 
   const onActiveRollAction = (action: ActiveRollAction) => {
     if (action === "exit") {
+      setIsRollMode(false)
+    } 
+    else if (action === "complete" ) {
       setIsRollMode(false)
     }
   }
@@ -43,11 +68,17 @@ export const HomeBoardPage: React.FC = () => {
 
         {loadState === "loaded" && data?.students && (
           <>
-            {data.students.map((s) => (
+            {sortType ?
+              filteredArray?.map((s) => (
               <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
-            ))}
+            )) 
+            :
+            data?.students.map((s) => (
+              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
+            )) 
+            }
           </>
-        )}
+        )} 
 
         {loadState === "error" && (
           <CenteredContainer>
@@ -60,16 +91,28 @@ export const HomeBoardPage: React.FC = () => {
   )
 }
 
-type ToolbarAction = "roll" | "sort"
+type ToolbarAction = "roll" | "sort" | "reverse" | "last" 
 interface ToolbarProps {
   onItemClick: (action: ToolbarAction, value?: string) => void
+  onClick: (action: ToolbarAction, value?: string) => void
 }
 const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const { onItemClick } = props
+  const { onItemClick , onSearch } = props
+
   return (
     <S.ToolbarContainer>
-      <div onClick={() => onItemClick("sort")}>First Name</div>
-      <div>Search</div>
+      <div >
+        <button onClick={() => onItemClick("sort")}>
+          First Name
+        </button>
+        <button onClick={() => onItemClick("reverse")}>
+        ↓↑
+        </button>
+        <button onClick={() => onItemClick("last")}>
+          Last Name
+        </button>
+      </div>
+      <div><input placeholder="Search" onChange={(e) => onSearch(e)}></input></div>
       <S.Button onClick={() => onItemClick("roll")}>Start Roll</S.Button>
     </S.ToolbarContainer>
   )
