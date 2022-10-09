@@ -14,26 +14,31 @@ import { faHandLizard } from "@fortawesome/free-solid-svg-icons"
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
-  const [sortType, setSortType] = useState("")
+  const [sortType, setSortType] = useState("null")
   const [reverse, setReverse] = useState(1)
-  const [filteredArray, setFilteredArray] = useState()
+  const [filteredArray, setFilteredArray] = useState([])
 
   useEffect(() => {
     void getStudents()
+    //setSortType('intial')
   }, [getStudents])
+
+  
 
   const onToolbarAction = (action: ToolbarAction) => {
     if (action === "roll") {
       setIsRollMode(true)
+      console.log(data?.students)
     }
     else if (action === 'sort') {
       setSortType("sort")
       const soretdByFirstName = data?.students?.sort((a, b) => a.first_name > b.first_name ? 1 : -1)
       setFilteredArray(soretdByFirstName)
+      setReverse(1)
     }
     else if (action === 'reverse') {
       if (filteredArray?.length > 0) {
-        setReverse(-reverse)
+        setReverse(-1)
         filteredArray?.reverse()
       } else {
         setFilteredArray(data?.students)
@@ -42,7 +47,13 @@ export const HomeBoardPage: React.FC = () => {
     else if (action === 'last') {
       setSortType("last")
       const sortedByLastName = data?.students?.sort((a, b) => a.last_name > b.last_name ? 1 : -1)
-      setFilteredArray(sortedByLastName )
+      setFilteredArray(sortedByLastName)
+      setReverse(1)
+    } else {
+      setSortType("search")
+      const searchInput = action.toLowerCase()
+      const filter = data?.students.filter(name => name.first_name.toLowerCase().includes(searchInput))
+      setFilteredArray(filter)
     }
   }
 
@@ -57,9 +68,8 @@ export const HomeBoardPage: React.FC = () => {
 
   return (
     <>
-      <S.PageContainer>
+      <S.PageContainer>.
         <Toolbar onItemClick={onToolbarAction} />
-
         {loadState === "loading" && (
           <CenteredContainer>
             <FontAwesomeIcon icon="spinner" size="2x" spin />
@@ -68,7 +78,7 @@ export const HomeBoardPage: React.FC = () => {
 
         {loadState === "loaded" && data?.students && (
           <>
-            {sortType ?
+            {sortType !== "null" ?
               filteredArray?.map((s) => (
               <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
             )) 
@@ -97,7 +107,7 @@ interface ToolbarProps {
   onClick: (action: ToolbarAction, value?: string) => void
 }
 const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const { onItemClick , onSearch } = props
+  const { onItemClick } = props
 
   return (
     <S.ToolbarContainer>
@@ -111,8 +121,14 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
         <button onClick={() => onItemClick("last")}>
           Last Name
         </button>
+        <button onClick={() => onItemClick("reverse")}>
+        ↓↑
+        </button>
       </div>
-      <div><input placeholder="Search" onChange={(e) => onSearch(e)}></input></div>
+      <div>
+        <input placeholder="Search" onChange={(e) => onItemClick(e.target.value)}>
+        </input>
+      </div>
       <S.Button onClick={() => onItemClick("roll")}>Start Roll</S.Button>
     </S.ToolbarContainer>
   )
